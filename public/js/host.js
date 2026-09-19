@@ -52,6 +52,30 @@ $('btnFinalizar').addEventListener('click', () => {
 $('btnAgregarBot').addEventListener('click', () => socket.emit('host:agregarBot', {}, (r) => { if (r && r.error) alert(r.error); }));
 $('btnQuitarBot').addEventListener('click', () => socket.emit('host:quitarBot', {}, (r) => { if (r && r.error) alert(r.error); }));
 
+// ---- Presupuesto inicial (max $10,000) ----
+const PRESUPUESTOS_RAPIDOS = [20, 50, 100, 500, 1000, 10000];
+$('presetsPresupuesto').innerHTML = PRESUPUESTOS_RAPIDOS
+  .map((v) => `<button class="preset-btn" type="button" data-monto="${v}">$${v.toLocaleString('es-MX')}</button>`)
+  .join('');
+$('presetsPresupuesto').addEventListener('click', (e) => {
+  const b = e.target.closest('.preset-btn');
+  if (!b) return;
+  $('inputPresupuesto').value = b.dataset.monto;
+  aplicarPresupuesto();
+});
+$('btnAplicarPresupuesto').addEventListener('click', aplicarPresupuesto);
+$('inputPresupuesto').addEventListener('keydown', (e) => { if (e.key === 'Enter') aplicarPresupuesto(); });
+
+function aplicarPresupuesto() {
+  const monto = Math.floor(Number($('inputPresupuesto').value));
+  if (!Number.isFinite(monto) || monto < 1) return alert('Ingresa un monto válido (mínimo $1).');
+  const tope = Math.min(monto, 10000);
+  socket.emit('host:setPresupuesto', { monto: tope }, (r) => {
+    if (r && r.error) return alert(r.error);
+    if (monto > 10000) alert('El máximo permitido es $10,000. Se aplicó ese tope a todos.');
+  });
+}
+
 function render() {
   if (!estado) return;
   const enLobby = estado.fase === 'lobby';
@@ -69,6 +93,13 @@ function render() {
   const bots = estado.jugadores.filter((j) => j.esBot).length;
   $('btnAgregarBot').disabled = bots >= estado.maxBots || estado.jugadores.length >= estado.maxJugadores || !enLobby;
   $('btnQuitarBot').disabled = bots === 0 || !enLobby;
+
+  $('chipPresupuesto').textContent = 'Presupuesto $' + (estado.presupuestoInicial || 0).toLocaleString('es-MX');
+  $('inputPresupuesto').max = estado.presupuestoMax || 10000;
+  if (document.activeElement !== $('inputPresupuesto')) $('inputPresupuesto').value = estado.presupuestoInicial;
+  $('inputPresupuesto').disabled = !enLobby;
+  $('btnAplicarPresupuesto').disabled = !enLobby;
+  $('presetsPresupuesto').querySelectorAll('.preset-btn').forEach((b) => { b.disabled = !enLobby; });
 
   $('listaJugadores').innerHTML = estado.jugadores.map((j) =>
     `<div class="jugador-chip ${j.conectado || j.esBot ? '' : 'off'}">${j.esBot ? '<span class="bot-tag">BOT</span>' : '<span class="punto"></span>'}${j.nombre}</div>`

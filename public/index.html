@@ -18,7 +18,7 @@
     <div class="header-chips">
       <div class="chip-h" id="chipJugadores">0 jugadores</div>
       <div class="chip-h" id="chipRonda">Sala en espera</div>
-      <div class="chip-h gold">Presupuesto $20</div>
+      <div class="chip-h gold" id="chipPresupuesto">Presupuesto $20</div>
     </div>
   </header>
 
@@ -38,6 +38,15 @@
           <div class="fila-botones">
             <button id="btnAgregarBot" class="btn btn-ghost">🤖 Agregar bot</button>
             <button id="btnQuitarBot" class="btn btn-ghost">Quitar bot</button>
+          </div>
+          <div class="presupuesto-caja">
+            <div class="panel-titulo" style="margin-bottom:10px">💰 Presupuesto inicial por jugador</div>
+            <div class="presupuesto-fila">
+              <input id="inputPresupuesto" class="input-presupuesto" type="number" min="1" max="10000" step="1" value="20" inputmode="numeric">
+              <button id="btnAplicarPresupuesto" class="btn btn-ghost">Aplicar a todos</button>
+            </div>
+            <div class="presupuesto-presets" id="presetsPresupuesto"></div>
+            <p class="presupuesto-nota">Máximo $10,000 por jugador. Se aplica a todos los participantes y bots.</p>
           </div>
           <button id="btnIniciar" class="btn btn-primary btn-block" style="margin-top:12px" disabled>Iniciar juego</button>
           <p style="font-size:12px;color:#999;text-align:center;margin-top:8px">Mínimo 2 jugadores (reales o bots) · Máx. 5 bots</p>

@@ -61,6 +61,7 @@ class Sala {
     this.code = code;
     this.hostSocketId = hostSocketId;
     this.jugadores = [];
+    this.presupuestoInicial = ECONOMIA.presupuestoInicial;
     this.fase = 'lobby'; // lobby | puja | adjudicado | fin
     this.mazo = mezclar(CATALOGO);
     this.cartaActual = null;
@@ -100,7 +101,8 @@ class Sala {
       code: this.code,
       fase: this.fase,
       ronda: this.ronda,
-      presupuestoInicial: ECONOMIA.presupuestoInicial,
+      presupuestoInicial: this.presupuestoInicial,
+      presupuestoMax: ECONOMIA.presupuestoMax,
       tamanoPlantilla: ECONOMIA.tamanoPlantilla,
       minJugadores: ECONOMIA.minJugadores,
       maxJugadores: ECONOMIA.maxJugadores,
@@ -172,7 +174,7 @@ class Sala {
     jugador = {
       id: 'J' + (++contadorJugador) + '-' + Math.random().toString(36).slice(2, 8),
       socketId, nombre: nombreLimpio, esBot: false,
-      dinero: ECONOMIA.presupuestoInicial,
+      dinero: this.presupuestoInicial,
       cartas: [], conectado: true
     };
     this.jugadores.push(jugador);
@@ -189,7 +191,7 @@ class Sala {
     const bot = {
       id: 'B' + (++contadorJugador) + '-' + Math.random().toString(36).slice(2, 8),
       socketId: null, nombre, esBot: true,
-      dinero: ECONOMIA.presupuestoInicial,
+      dinero: this.presupuestoInicial,
       cartas: [], conectado: true, botTimer: null
     };
     this.jugadores.push(bot);
@@ -202,6 +204,17 @@ class Sala {
       if (this.jugadores[i].esBot) { this.jugadores.splice(i, 1); return { ok: true }; }
     }
     return { error: 'No hay bots.' };
+  }
+
+  setPresupuesto(monto) {
+    if (this.fase !== 'lobby') return { error: 'Solo se puede cambiar antes de iniciar.' };
+    const m = Math.floor(Number(monto));
+    if (!Number.isFinite(m) || m < 1) return { error: 'Monto invalido.' };
+    const nuevo = Math.min(m, ECONOMIA.presupuestoMax);
+    this.presupuestoInicial = nuevo;
+    for (const j of this.jugadores) j.dinero = nuevo;
+    this.emitirEstado();
+    return { ok: true, presupuestoInicial: nuevo };
   }
 
   desconectar(socketId) {

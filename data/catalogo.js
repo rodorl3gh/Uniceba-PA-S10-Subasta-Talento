@@ -9,6 +9,7 @@
 // --- Economia y reglas ------------------------------------------------
 const ECONOMIA = {
   presupuestoInicial: 20,      // dinero inicial por jugador
+  presupuestoMax: 10000,       // tope configurable por el anfitrion
   tamanoPlantilla: 5,          // personas por equipo
   incrementosRapidos: [1, 2, 5], // botones de puja rapida (suben sobre la puja actual)
   segundosPuja: 20,            // el reloj se reinicia a 20s con cada puja

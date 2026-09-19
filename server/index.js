@@ -110,6 +110,13 @@ io.on('connection', (socket) => {
     cb && cb(r);
   });
 
+  socket.on('host:setPresupuesto', ({ monto }, cb) => {
+    const sala = salas.get(socket.data && socket.data.code);
+    if (!sala) return cb && cb({ error: 'Sala no encontrada.' });
+    const r = sala.setPresupuesto(monto);
+    cb && cb(r);
+  });
+
   socket.on('host:siguiente', (_, cb) => {
     const sala = salas.get(socket.data && socket.data.code);
     if (!sala) return cb && cb({ error: 'Sala no encontrada.' });

@@ -79,6 +79,30 @@ body::after {
 .btn-danger:hover { background: #b91c1c; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(185, 28, 28, 0.25); }
 .btn-block { width: 100%; }
 
+/* ---------- Presupuesto inicial (lobby) ---------- */
+.presupuesto-caja {
+  margin-top: 16px; padding: 14px; border-radius: 12px;
+  background: var(--light-bg); border: 1px solid #dbe3ee;
+}
+.presupuesto-fila { display: flex; gap: 8px; align-items: stretch; }
+.input-presupuesto {
+  flex: 1; min-width: 0; padding: 10px 12px; border-radius: 10px;
+  border: 2px solid #cbd5e1; font-family: inherit; font-size: 16px; font-weight: 700;
+  color: var(--uniceba-blue); background: #fff;
+}
+.input-presupuesto:focus { outline: none; border-color: var(--uniceba-blue); }
+.input-presupuesto:disabled { background: #eef2f7; color: #94a3b8; }
+.presupuesto-fila .btn { padding: 10px 16px; font-size: 14px; }
+.presupuesto-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.preset-btn {
+  padding: 6px 12px; border-radius: 20px; border: 1px solid #cbd5e1; background: #fff;
+  color: var(--uniceba-blue); font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  transition: all 0.2s;
+}
+.preset-btn:hover { background: var(--uniceba-blue); color: #fff; border-color: var(--uniceba-blue); }
+.preset-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.presupuesto-nota { font-size: 11px; color: var(--text-light); margin-top: 8px; }
+
 /* ---------- Lobby ---------- */
 .lobby-grid { display: grid; grid-template-columns: 340px 1fr; gap: 22px; align-items: start; }
 .codigo-caja { text-align: center; }
