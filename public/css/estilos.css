@@ -289,6 +289,28 @@ input.codigo-input { text-transform: uppercase; letter-spacing: 6px; font-weight
   .podio .barra, .carta-fifa, .timer-num.urgente { animation: none; }
 }
 
+/* ---------- Cuestionario ---------- */
+.quiz-progreso { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light); font-weight: 700; }
+.quiz-barra { height: 8px; background: #e3e8f0; border-radius: 8px; overflow: hidden; margin: 8px 0 18px; }
+.quiz-barra-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--uniceba-blue), var(--uniceba-accent)); transition: width 0.35s ease; }
+.quiz-pregunta { font-size: 19px; color: var(--uniceba-blue); margin-bottom: 16px; line-height: 1.35; }
+.quiz-opciones { display: grid; gap: 10px; margin-bottom: 18px; }
+.opcion {
+  text-align: left; padding: 15px 16px; border: 2px solid #dbe3ee; border-radius: 12px;
+  background: #fff; font-family: inherit; font-size: 15px; color: var(--text); cursor: pointer;
+  transition: all 0.18s; line-height: 1.35;
+}
+.opcion:hover { border-color: var(--uniceba-blue); background: #f4f8fd; }
+.opcion.sel { border-color: var(--uniceba-blue); background: var(--uniceba-blue); color: #fff; font-weight: 700; }
+.quiz-score { font-size: 54px; font-weight: 900; margin: 8px 0 2px; font-variant-numeric: tabular-nums; }
+.rev-lista { margin-top: 20px; display: grid; gap: 12px; }
+.rev { border-radius: 12px; padding: 12px 14px; border-left: 5px solid #cfd8e3; background: var(--light-bg); }
+.rev.ok { border-left-color: var(--correct); background: #f0faf3; }
+.rev.mal { border-left-color: var(--incorrect); background: #fdf1ef; }
+.rev-tit { font-weight: 700; font-size: 14px; margin-bottom: 6px; line-height: 1.35; }
+.rev-lin { font-size: 13px; color: var(--text); }
+.rev-exp { font-size: 12px; color: var(--text-light); margin-top: 6px; font-style: italic; }
+
 .footer { text-align: center; padding: 10px 20px; font-size: 11px; color: #999; position: relative; z-index: 1; }
 
 @media (max-width: 860px) {

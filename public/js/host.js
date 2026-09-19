@@ -22,6 +22,7 @@ let estado = null;
 let timerRAF = null;
 
 $('instruccionesAdmin').innerHTML = instruccionesHTML();
+$('quizUrl').textContent = location.origin + '/quiz';
 
 function crearSala() {
   socket.emit('host:crearSala', {}, (r) => {

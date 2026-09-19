@@ -9,6 +9,7 @@ const { Server } = require('socket.io');
 const QRCode = require('qrcode');
 const { salas, crearSala } = require('./juego');
 const { ECONOMIA } = require('../data/catalogo');
+const { PREGUNTAS } = require('../data/cuestionario');
 
 // Overrides opcionales (utiles para pruebas automatizadas).
 if (process.env.SEGUNDOS_PUJA) ECONOMIA.segundosPuja = Number(process.env.SEGUNDOS_PUJA);
@@ -26,6 +27,44 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public'), { extensions: ['html'] }));
 
 app.get('/health', (req, res) => res.json({ ok: true, salas: salas.size }));
+
+// ---------------- Cuestionario (10 preguntas aleatorias de 20) ----------------
+function barajar(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+app.get('/api/quiz', (req, res) => {
+  const seleccion = barajar(PREGUNTAS).slice(0, 10).map((q) => ({
+    id: q.id,
+    pregunta: q.pregunta,
+    opciones: q.opciones
+  }));
+  res.json({ total: seleccion.length, preguntas: seleccion });
+});
+
+app.post('/api/quiz/calificar', (req, res) => {
+  const respuestas = (req.body && req.body.respuestas) || {};
+  const porId = new Map(PREGUNTAS.map((q) => [q.id, q]));
+  const detalle = [];
+  let correctas = 0;
+  for (const [idStr, elegida] of Object.entries(respuestas)) {
+    const q = porId.get(Number(idStr));
+    if (!q) continue;
+    const acierto = Number(elegida) === q.correcta;
+    if (acierto) correctas += 1;
+    detalle.push({
+      id: q.id, pregunta: q.pregunta, opciones: q.opciones,
+      correcta: q.correcta, elegida: Number(elegida), acierto, explicacion: q.explicacion
+    });
+  }
+  detalle.sort((a, b) => a.id - b.id);
+  res.json({ correctas, total: detalle.length, calificacion: detalle.length ? Math.round((correctas / detalle.length) * 10 * 10) / 10 : 0, detalle });
+});
 
 app.get('/debug/salas', (req, res) => {
   const out = [...salas.values()].map((s) => ({

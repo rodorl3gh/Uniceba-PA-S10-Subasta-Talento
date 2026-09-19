@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cuestionario Sesión 10 · UNICEBA</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-marca">
+      <div class="header-logo">UN</div>
+      <div>
+        <h1>Cuestionario de repaso</h1>
+        <span>Sesión 10 · Estructuras formales e informales y diseño de puestos y equipos</span>
+      </div>
+    </div>
+    <div class="header-chips"><div class="chip-h" id="quizChipNombre">Alumno</div></div>
+  </header>
+
+  <main class="contenedor movil">
+    <!-- INTRO -->
+    <section id="vistaQuizIntro" class="panel-movil">
+      <div class="panel-titulo">📝 Cuestionario · 10 preguntas</div>
+      <p style="font-size:15px;line-height:1.5;color:var(--text)">
+        Responde <b>10 preguntas de opción múltiple</b> (elegidas al azar de un banco de 20)
+        sobre los temas de la Sesión 10. Al terminar verás tu <b>calificación</b> y la
+        retroalimentación de cada pregunta.
+      </p>
+      <label for="quizNombre">Tu nombre</label>
+      <input id="quizNombre" maxlength="30" placeholder="Ej. Ana Gómez" autocomplete="off">
+      <button id="btnComenzar" class="btn btn-primary btn-block" style="margin-top:18px">Comenzar cuestionario</button>
+      <p id="quizError" style="color:var(--incorrect);font-size:14px;margin-top:10px;text-align:center"></p>
+    </section>
+
+    <!-- PREGUNTA -->
+    <section id="vistaQuizPregunta" class="panel-movil oculto">
+      <div class="quiz-progreso"><span id="quizProgreso">Pregunta 1 de 10</span></div>
+      <div class="quiz-barra"><div class="quiz-barra-fill" id="quizBarraFill"></div></div>
+      <h2 id="quizPregunta" class="quiz-pregunta"></h2>
+      <div id="quizOpciones" class="quiz-opciones"></div>
+      <button id="btnSiguiente" class="btn btn-primary btn-block" disabled>Siguiente</button>
+    </section>
+
+    <!-- RESULTADO -->
+    <section id="vistaQuizResultado" class="oculto">
+      <div class="panel-movil" id="quizResultado"></div>
+    </section>
+  </main>
+
+  <footer class="footer">UNICEBA · Licenciatura en Negocios Internacionales · Proceso Administrativo · Ing. Rodolfo Ramírez</footer>
+
+  <script src="/js/quiz.js"></script>
+</body>
+</html>
