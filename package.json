@@ -1,0 +1,31 @@
+{
+  "name": "subasta-talento-uniceba",
+  "version": "1.0.0",
+  "description": "Juego de subasta de talento en tiempo real para la Sesion 10 de Proceso Administrativo (UNICEBA)",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node tests/simulate.js"
+  },
+  "keywords": [
+    "uniceba",
+    "subasta",
+    "socket.io",
+    "educacion"
+  ],
+  "author": "Rodo",
+  "license": "MIT",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "playwright": "^1.61.1"
+  }
+}

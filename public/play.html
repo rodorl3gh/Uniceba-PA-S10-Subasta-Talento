@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Subasta de Talento · Jugador</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-marca">
+      <div class="header-logo">UN</div>
+      <div>
+        <h1>Subasta de Talento</h1>
+        <span>Proceso Administrativo · Sesión 10</span>
+      </div>
+    </div>
+    <div class="header-chips"><div class="chip-h" id="chipNombre">—</div></div>
+  </header>
+
+  <main class="contenedor movil">
+    <!-- UNIRSE -->
+    <section id="vistaUnirse">
+      <div class="panel-movil">
+        <div class="panel-titulo">Entrar a la subasta</div>
+        <label for="inputCodigo">Código de sala</label>
+        <input id="inputCodigo" class="codigo-input" maxlength="5" placeholder="XXXXX" autocomplete="off">
+        <label for="inputNombre">Tu nombre</label>
+        <input id="inputNombre" maxlength="18" placeholder="Ej. Ana" autocomplete="off">
+        <button id="btnEntrar" class="btn btn-primary btn-block" style="margin-top:18px">Entrar</button>
+        <p id="errorUnion" style="color:var(--incorrect);font-size:14px;margin-top:10px;text-align:center"></p>
+      </div>
+    </section>
+
+    <!-- JUEGO -->
+    <section id="vistaJuego" class="oculto">
+      <div class="panel-movil">
+        <div class="dinero-bar">
+          <div>
+            <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px">Tu presupuesto</div>
+            <div class="monto" id="miDinero">$20</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px">Ronda</div>
+            <div style="font-size:22px;font-weight:900;color:var(--uniceba-blue)" id="miRonda">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-movil" id="panelCarta">
+        <div class="panel-titulo" id="tituloCarta">Esperando a que inicie la subasta…</div>
+        <div id="contenidoCarta"></div>
+        <div class="puja-botones oculto" id="pujaBotones"></div>
+        <div class="estado-puja oculto" id="estadoPuja"></div>
+      </div>
+
+      <div class="panel-movil">
+        <div class="panel-titulo">Mi plantilla <span id="contadorPlantilla"></span></div>
+        <div class="plantilla" id="miPlantilla"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="overlay" class="overlay oculto"><div class="card-modal" id="modal"></div></div>
+  <footer class="footer">UNICEBA · Licenciatura en Negocios Internacionales · Ing. Rodolfo Ramírez</footer>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/jugador.js"></script>
+</body>
+</html>

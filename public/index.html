@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subasta de Talento UNICEBA · Anfitrión</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-marca">
+      <div class="header-logo">UN</div>
+      <div>
+        <h1>Subasta de Talento</h1>
+        <span>Sesión 10 · Estructuras Formales e Informales y Diseño de Puestos y Equipos</span>
+      </div>
+    </div>
+    <div class="header-chips">
+      <div class="chip-h" id="chipJugadores">0 jugadores</div>
+      <div class="chip-h" id="chipRonda">Sala en espera</div>
+      <div class="chip-h gold">Presupuesto $20</div>
+    </div>
+  </header>
+
+  <main class="contenedor">
+    <!-- LOBBY -->
+    <section id="vistaLobby" class="lobby-grid">
+      <div class="panel codigo-caja">
+        <div class="panel-titulo">Escanea para unirte</div>
+        <img id="qr" class="qr" alt="Código QR de la sala">
+        <div class="codigo" id="codigoSala">-----</div>
+        <div class="url-join" id="urlJoin"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-titulo">Jugadores en la sala <span id="contadorJugadores">(0/15)</span></div>
+        <div id="listaJugadores" class="lista-jugadores"></div>
+        <button id="btnIniciar" class="btn btn-primary btn-block" style="margin-top:20px" disabled>Iniciar subasta</button>
+        <p style="font-size:12px;color:#999;text-align:center;margin-top:8px">Se necesitan al menos 2 jugadores</p>
+      </div>
+    </section>
+
+    <!-- SUBASTA -->
+    <section id="vistaSubasta" class="oculto">
+      <div class="panel">
+        <div class="subasta-top">
+          <div class="chip-h" id="rondaLabel" style="background:var(--light-bg);color:var(--uniceba-blue);border-color:#dbe3ee">Ronda 1</div>
+          <div class="timer">
+            <div class="timer-num" id="timerNum">20</div>
+            <div class="timer-barra"><div class="timer-fill" id="timerFill"></div></div>
+          </div>
+          <button id="btnSiguiente" class="btn btn-ghost">Saltar carta</button>
+        </div>
+        <div id="cartaSubasta" class="carta-subasta"></div>
+        <div id="bannerAdjudicada"></div>
+        <div class="grid-jugadores" id="gridJugadores"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="overlayFin" class="overlay oculto"><div class="card-modal" id="modalFin"></div></div>
+  <footer class="footer">UNICEBA · Licenciatura en Negocios Internacionales · Proceso Administrativo · Ing. Rodolfo Ramírez</footer>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/host.js"></script>
+</body>
+</html>
