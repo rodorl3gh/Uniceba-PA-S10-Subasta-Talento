@@ -13,6 +13,7 @@ let miNombre = null;
 let estadoPub = null;
 let miEstado = null;
 let yaEnvie = false;
+let ultimaClave = null;
 let codigoActual = null;
 
 const params = new URLSearchParams(location.search);
@@ -70,9 +71,7 @@ function entrarGuardado(code, id, nombre) {
 socket.on('sala:estado', (e) => { estadoPub = e; render(); });
 
 socket.on('jugador:estado', (e) => {
-  const antes = miEstado ? miEstado.cartas.length : 0;
   miEstado = e;
-  if (estadoPub && estadoPub.fase !== 'puja' && estadoPub.fase !== 'desempate') yaEnvie = false;
   render();
 });
 
@@ -96,6 +95,8 @@ socket.on('connect', () => {
 
 function render() {
   if (!miEstado || !estadoPub) return;
+  const clave = (estadoPub.cartaActual ? estadoPub.cartaActual.id : '') + ':' + estadoPub.fase;
+  if (clave !== ultimaClave) { ultimaClave = clave; yaEnvie = false; }
   $('miDinero').textContent = '$' + miEstado.dinero;
   $('miDinero').className = 'monto' + (miEstado.dinero <= 0 ? ' quiebra' : '');
   $('miRonda').textContent = estadoPub.fase === 'lobby' ? '—' : estadoPub.ronda;

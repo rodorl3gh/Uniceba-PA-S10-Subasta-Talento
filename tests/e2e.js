@@ -7,7 +7,7 @@ const path = require('path');
 const { chromium } = require('playwright');
 
 const PORT = 3100;
-const BASE = `http://localhost:${PORT}`;
+const BASE = process.env.BASE_URL || `http://localhost:${PORT}`;
 const N_JUGADORES = Number(process.env.JUGADORES) || 3;
 
 function esperar(ms) { return new Promise((r) => setTimeout(r, ms)); }
@@ -52,11 +52,14 @@ async function bucleJugador(page) {
 }
 
 (async () => {
-  const env = { ...process.env, PORT: String(PORT), SEGUNDOS_PUJA: '1', SEGUNDOS_DESEMPATE: '1', PAUSA_ADJUDICADA: '250' };
-  const servidor = spawn(process.execPath, [path.join(__dirname, '..', 'server', 'index.js')], { env, stdio: 'inherit' });
-
-  const cerrar = () => { try { servidor.kill(); } catch (e) { /* noop */ } };
-  process.on('exit', cerrar);
+  let servidor = null;
+  let cerrar = () => {};
+  if (!process.env.BASE_URL) {
+    const env = { ...process.env, PORT: String(PORT), SEGUNDOS_PUJA: '1', SEGUNDOS_DESEMPATE: '1', PAUSA_ADJUDICADA: '250' };
+    servidor = spawn(process.execPath, [path.join(__dirname, '..', 'server', 'index.js')], { env, stdio: 'inherit' });
+    cerrar = () => { try { servidor.kill(); } catch (e) { /* noop */ } };
+    process.on('exit', cerrar);
+  }
 
   if (!(await esperarServidor())) { console.error('El servidor no respondio.'); cerrar(); process.exit(1); }
 
