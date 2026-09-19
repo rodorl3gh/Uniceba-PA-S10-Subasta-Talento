@@ -1,8 +1,9 @@
 /**
  * Motor del juego "Subasta de Talento UNICEBA".
- * Mantiene el estado de las salas, la subasta en tiempo real y el puntaje.
+ * Subasta en tiempo real: el reloj de 20s se reinicia con cada puja y la
+ * adjudicacion ocurre cuando el reloj llega a cero (o el anfitrion termina).
  */
-const { ECONOMIA, REGLAS_ROL, PUNTAJE, construirCatalogo } = require('../data/catalogo');
+const { ECONOMIA, REGLAS_ROL, PUNTAJE, NOMBRES_BOT, construirCatalogo } = require('../data/catalogo');
 
 const CATALOGO = construirCatalogo();
 let contadorJugador = 0;
@@ -60,18 +61,18 @@ class Sala {
     this.code = code;
     this.hostSocketId = hostSocketId;
     this.jugadores = [];
-    this.fase = 'lobby'; // lobby | puja | desempate | adjudicado | fin
+    this.fase = 'lobby'; // lobby | puja | adjudicado | fin
     this.mazo = mezclar(CATALOGO);
     this.cartaActual = null;
-    this.pujas = {};
+    this.pujaActual = null;      // { jugadorId, monto }
+    this.pujadores = {};         // jugadorId -> ultima puja
     this.temporizador = null;
     this.pujaFin = 0;
     this.ronda = 0;
     this.quiebraCola = [];
     this.ultimoGanador = null;
-    this.empatados = [];
+    this.desiertasSeguidas = 0;
     this.vuelta = 0;
-    this.desiertasConsecutivas = 0;
     this.log = [];
   }
 
@@ -80,6 +81,7 @@ class Sala {
     return {
       id: j.id,
       nombre: j.nombre,
+      esBot: !!j.esBot,
       dinero: j.dinero,
       cartas: j.cartas.length,
       rolConteo: {
@@ -88,7 +90,8 @@ class Sala {
         colaborador: contarRol(j.cartas, 'colaborador')
       },
       conectado: j.conectado,
-      yaPujo: Object.prototype.hasOwnProperty.call(this.pujas, j.id)
+      pujo: Object.prototype.hasOwnProperty.call(this.pujadores, j.id),
+      vaGanando: !!this.pujaActual && this.pujaActual.jugadorId === j.id
     };
   }
 
@@ -101,17 +104,21 @@ class Sala {
       tamanoPlantilla: ECONOMIA.tamanoPlantilla,
       minJugadores: ECONOMIA.minJugadores,
       maxJugadores: ECONOMIA.maxJugadores,
-      pujasRapidas: ECONOMIA.pujasRapidas,
-      pujaFin: this.pujaFin,
+      maxBots: ECONOMIA.maxBots,
+      incrementosRapidos: ECONOMIA.incrementosRapidos,
       segundosPuja: ECONOMIA.segundosPuja,
-      segundosDesempate: ECONOMIA.segundosDesempate,
+      pujaFin: this.pujaFin,
+      pujaActual: this.pujaActual
+        ? { jugadorId: this.pujaActual.jugadorId, nombre: (this.jugadores.find((j) => j.id === this.pujaActual.jugadorId) || {}).nombre, monto: this.pujaActual.monto }
+        : null,
       cartaActual: this.cartaActual
         ? {
             id: this.cartaActual.id,
             nombre: this.cartaActual.nombre,
             rol: this.cartaActual.rol,
             area: this.cartaActual.area,
-            icon: this.cartaActual.icon
+            icon: this.cartaActual.icon,
+            atributos: this.cartaActual.atributos // valores, el color lo decide el cliente
           }
         : null,
       jugadores: this.jugadores.map((j) => this.jugadorPublico(j)),
@@ -120,12 +127,17 @@ class Sala {
   }
 
   jugadorPrivado(j) {
+    const carta = this.cartaActual;
+    const minimo = this.pujaActual ? this.pujaActual.monto + 1 : 1;
     return {
       id: j.id,
       nombre: j.nombre,
       dinero: j.dinero,
       cartas: j.cartas,
-      puedePujar: this.cartaActual ? puedeAceptar(j, this.cartaActual) && j.dinero >= 1 : false
+      puedePujar: !!(carta && j.dinero >= minimo && puedeAceptar(j, carta) && !(this.pujaActual && this.pujaActual.jugadorId === j.id)),
+      pujaMinima: Math.min(minimo, j.dinero),
+      vaGanando: !!this.pujaActual && this.pujaActual.jugadorId === j.id,
+      fase: this.fase
     };
   }
 
@@ -159,7 +171,7 @@ class Sala {
     const nombreLimpio = String(nombre || '').trim().slice(0, 18) || 'Jugador';
     jugador = {
       id: 'J' + (++contadorJugador) + '-' + Math.random().toString(36).slice(2, 8),
-      socketId, nombre: nombreLimpio,
+      socketId, nombre: nombreLimpio, esBot: false,
       dinero: ECONOMIA.presupuestoInicial,
       cartas: [], conectado: true
     };
@@ -167,17 +179,43 @@ class Sala {
     return { jugador };
   }
 
+  agregarBot() {
+    if (this.fase !== 'lobby') return { error: 'Solo se pueden agregar bots antes de iniciar.' };
+    const bots = this.jugadores.filter((j) => j.esBot).length;
+    if (bots >= ECONOMIA.maxBots) return { error: `Maximo ${ECONOMIA.maxBots} bots.` };
+    if (this.jugadores.length >= ECONOMIA.maxJugadores) return { error: 'La sala esta llena.' };
+    const usados = new Set(this.jugadores.map((j) => j.nombre));
+    const nombre = NOMBRES_BOT.find((n) => !usados.has(n)) || ('Bot ' + (bots + 1));
+    const bot = {
+      id: 'B' + (++contadorJugador) + '-' + Math.random().toString(36).slice(2, 8),
+      socketId: null, nombre, esBot: true,
+      dinero: ECONOMIA.presupuestoInicial,
+      cartas: [], conectado: true, botTimer: null
+    };
+    this.jugadores.push(bot);
+    return { bot };
+  }
+
+  quitarBot() {
+    if (this.fase !== 'lobby') return { error: 'Solo antes de iniciar.' };
+    for (let i = this.jugadores.length - 1; i >= 0; i--) {
+      if (this.jugadores[i].esBot) { this.jugadores.splice(i, 1); return { ok: true }; }
+    }
+    return { error: 'No hay bots.' };
+  }
+
   desconectar(socketId) {
     const j = this.jugadores.find((x) => x.socketId === socketId);
     if (j) { j.conectado = false; j.socketId = null; }
   }
 
-  // --- subasta ---------------------------------------------------------
+  // --- flujo de la subasta --------------------------------------------
   iniciar() {
-    if (this.jugadores.length < ECONOMIA.minJugadores) return { error: 'Se necesitan al menos 2 jugadores.' };
+    if (this.jugadores.length < ECONOMIA.minJugadores) return { error: 'Se necesitan al menos 2 jugadores o bots.' };
     this.log = [];
     this.quiebraCola = [];
     this.ronda = 0;
+    this.desiertasSeguidas = 0;
     this.sacarCarta();
     return { ok: true };
   }
@@ -187,224 +225,178 @@ class Sala {
   }
 
   sacarCarta() {
-    this.limpiarTemporizador();
-    this.pujas = {};
+    this.limpiarTemporizadores();
+    this.pujadores = {};
     this.ultimoGanador = null;
-    // Si no quedan jugadores con espacio, terminamos.
-    if (this.jugadoresActivos().length === 0) return this.terminar();
+    this.pujaActual = null;
 
-    // Reponemos el mazo con una nueva "generación" de candidatos si se agota.
+    if (this.jugadoresActivos().length === 0) return this.terminar();
+    if (this.desiertasSeguidas >= ECONOMIA.maxEnviosSeguidos) return this.terminar();
+
     if (this.mazo.length === 0) {
       this.vuelta += 1;
       this.mazo = mezclar(CATALOGO.map((c) => ({ ...c, id: c.id + '-V' + this.vuelta })));
     }
     const carta = this.mazo.shift();
-    if (!carta) return this.resolverSinCartas();
+    if (!carta) return this.terminar();
 
     this.cartaActual = carta;
     this.ronda += 1;
     this.fase = 'puja';
-    this.pujaFin = Date.now() + ECONOMIA.segundosPuja * 1000;
+    this.reiniciarReloj();
     this.emitirEstado();
     this.toHost('subasta:nuevaCarta', this.estadoPublico());
-    this.iniciarTemporizador(ECONOMIA.segundosPuja, () => this.resolver());
+    this.programarBots();
   }
 
-  iniciarTemporizador(segundos, cb) {
-    this.limpiarTemporizador();
-    this.temporizador = setTimeout(() => { this.temporizador = null; cb(); }, segundos * 1000);
-  }
-
-  limpiarTemporizador() {
+  reiniciarReloj() {
     if (this.temporizador) { clearTimeout(this.temporizador); this.temporizador = null; }
+    this.pujaFin = Date.now() + ECONOMIA.segundosPuja * 1000;
+    this.temporizador = setTimeout(() => { this.temporizador = null; this.resolver(); }, ECONOMIA.segundosPuja * 1000);
+  }
+
+  limpiarTemporizadores() {
+    if (this.temporizador) { clearTimeout(this.temporizador); this.temporizador = null; }
+    for (const j of this.jugadores) {
+      if (j.botTimer) { clearTimeout(j.botTimer); j.botTimer = null; }
+    }
   }
 
   registrarPuja(jugador, monto) {
-    if (this.fase !== 'puja' && this.fase !== 'desempate') return { error: 'No hay subasta activa.' };
-    const carta = this.cartaActual;
-    if (!carta) return { error: 'Sin carta activa.' };
-    if (!puedeAceptar(jugador, carta)) return { error: 'No puedes sumar ese rol a tu plantilla.' };
-    if (this.fase === 'desempate' && !this.empatados.includes(jugador.id)) {
-      return { error: 'Solo participan los jugadores empatados.' };
-    }
+    if (this.fase !== 'puja' || !this.cartaActual) return { error: 'No hay subasta activa.' };
+    if (!puedeAceptar(jugador, this.cartaActual)) return { error: 'No puedes sumar ese rol a tu plantilla.' };
     const m = Math.floor(Number(monto));
     if (!Number.isFinite(m) || m < 1) return { error: 'Puja invalida.' };
     if (m > jugador.dinero) return { error: 'No tienes suficiente dinero.' };
-    this.pujas[jugador.id] = m;
+    if (this.pujaActual && m <= this.pujaActual.monto) return { error: 'Debes superar la puja actual.' };
+    this.pujaActual = { jugadorId: jugador.id, monto: m };
+    this.pujadores[jugador.id] = m;
+    this.reiniciarReloj();
     this.emitirEstado();
-    this.verificarTodosListos();
+    this.toHost('subasta:puja', this.estadoPublico());
+    this.programarBots();
     return { ok: true, monto: m };
   }
 
-  registrarPase(jugador) {
-    if (this.fase !== 'puja' && this.fase !== 'desempate') return { error: 'No hay subasta activa.' };
-    this.pujas[jugador.id] = 0;
-    this.emitirEstado();
-    this.verificarTodosListos();
-    return { ok: true };
-  }
-
-  jugadoresQuePujan() {
-    if (!this.cartaActual) return [];
-    let elegibles = this.jugadores.filter((j) => j.dinero >= 1 && puedeAceptar(j, this.cartaActual));
-    if (this.fase === 'desempate') elegibles = elegibles.filter((j) => this.empatados.includes(j.id));
-    return elegibles;
-  }
-
-  verificarTodosListos() {
-    const elegibles = this.jugadoresQuePujan();
-    if (elegibles.length === 0) return this.resolver();
-    const todosListos = elegibles.every((j) => Object.prototype.hasOwnProperty.call(this.pujas, j.id));
-    if (todosListos) { this.limpiarTemporizador(); this.resolver(); }
-  }
-
   resolver() {
-    this.limpiarTemporizador();
-    if (this.fase === 'adjudicado' || this.fase === 'fin') return;
+    if (this.fase !== 'puja') return;
+    this.limpiarTemporizadores();
     const carta = this.cartaActual;
     if (!carta) return;
-    const pujas = this.pujas;
-    const validas = Object.entries(pujas).filter(([, m]) => m > 0);
 
-    // Nadie pujo: ver si un jugador en quiebra puede recibirlo gratis.
-    if (validas.length === 0) {
-      const asignado = this.asignarPorQuiebra(carta);
-      if (asignado) return;
-      return this.declararDesierta(carta);
+    if (this.pujaActual) {
+      const ganador = this.jugadores.find((j) => j.id === this.pujaActual.jugadorId);
+      if (ganador) return this.adjudicar(ganador, this.pujaActual.monto);
     }
-
-    const maxMonto = Math.max(...validas.map(([, m]) => m));
-    const ganadores = validas.filter(([, m]) => m === maxMonto).map(([id]) => id);
-
-    if (ganadores.length > 1 && this.fase !== 'desempate') {
-      // Empate: segunda vuelta sellada solo entre empatados.
-      this.empatados = ganadores;
-      this.pujas = {};
-      this.fase = 'desempate';
-      this.pujaFin = Date.now() + ECONOMIA.segundosDesempate * 1000;
-      this.emitirEstado();
-      this.toHost('subasta:desempate', { empatados: ganadores, estado: this.estadoPublico() });
-      this.iniciarTemporizador(ECONOMIA.segundosDesempate, () => this.resolverDesempate());
-      return;
-    }
-
-    if (ganadores.length > 1) return this.resolverDesempate();
-    this.adjudicar(ganadores[0], maxMonto);
+    // Nadie pujo: se asigna gratis a un jugador en quiebra que lo necesite; si no, a la basura.
+    const asignado = this.asignarPorQuiebra(carta);
+    if (asignado) return;
+    this.tirarBasura(carta);
   }
 
-  resolverDesempate() {
-    this.limpiarTemporizador();
-    if (this.fase === 'adjudicado' || this.fase === 'fin') return;
-    const validas = Object.entries(this.pujas).filter(([, m]) => m > 0);
-    if (validas.length === 0) return this.declararDesierta(this.cartaActual);
-    const maxMonto = Math.max(...validas.map(([, m]) => m));
-    const ganadores = validas.filter(([, m]) => m === maxMonto).map(([id]) => id);
-    if (ganadores.length > 1) {
-      // Persiste el empate: se rompe al azar entre los empatados para no frenar la partida.
-      const elegido = ganadores[Math.floor(Math.random() * ganadores.length)];
-      this.log.push({ carta: this.cartaActual.nombre, resultado: 'desempate al azar', a: elegido });
-      return this.adjudicar(elegido, maxMonto);
-    }
-    this.adjudicar(ganadores[0], maxMonto);
-  }
-
-  declararDesierta(carta) {
-    this.desiertasConsecutivas += 1;
-    if (this.desiertasConsecutivas >= 3) {
-      const forzado = this.asignacionForzosa(carta);
-      if (forzado) return;
-    }
-    this.log.push({ carta: carta.nombre, resultado: 'desierta' });
-    this.ultimoGanador = { jugadorId: null, nombre: null, puesto: carta.nombre, rol: carta.rol, media: null, monto: 0, desierta: true };
-    this.fase = 'adjudicado';
-    this.emitirEstado();
-    this.toHost('subasta:adjudicada', this.estadoPublico());
-    return this.siguienteAutomatico();
-  }
-
-  // Valvula de seguridad: si nadie puja repetidamente, se asigna gratis al
-  // jugador activo con menos cartas (evita que una partida nunca termine).
-  asignacionForzosa(carta) {
-    const candidatos = this.jugadores
-      .filter((j) => puedeAceptar(j, carta))
-      .sort((a, b) => a.cartas.length - b.cartas.length || a.dinero - b.dinero);
-    const j = candidatos[0];
-    if (!j) return false;
-    j.cartas.push(carta);
-    this.desiertasConsecutivas = 0;
-    this.log.push({ carta: carta.nombre, resultado: 'asignacion forzosa', a: j.nombre, monto: 0 });
-    this.ultimoGanador = { jugadorId: j.id, nombre: j.nombre, puesto: carta.nombre, rol: carta.rol, media: null, monto: 0, desierta: false, forzada: true };
-    this.fase = 'adjudicado';
-    if (j.socketId) this.io.to(j.socketId).emit('jugador:cartaGanada', { carta, dinero: j.dinero, forzada: true });
-    this.emitirEstado();
-    this.toHost('subasta:adjudicada', this.estadoPublico());
-    this.siguienteAutomatico();
-    return true;
-  }
-
-  adjudicar(jugadorId, monto) {
-    const j = this.jugadores.find((x) => x.id === jugadorId);
+  adjudicar(j, monto) {
     const carta = this.cartaActual;
     if (!j || !carta) return;
     j.dinero -= monto;
     j.cartas.push(carta);
     if (j.dinero <= 0 && !this.quiebraCola.includes(j.id)) this.quiebraCola.push(j.id);
-    this.desiertasConsecutivas = 0;
+    this.desiertasSeguidas = 0;
     this.log.push({ carta: carta.nombre, resultado: 'adjudicada', a: j.nombre, monto });
-    this.ultimoGanador = { jugadorId: j.id, nombre: j.nombre, puesto: carta.nombre, rol: carta.rol, media: carta.media, monto, desierta: false };
+    this.ultimoGanador = { jugadorId: j.id, nombre: j.nombre, puesto: carta.nombre, rol: carta.rol, media: carta.media, monto, esBot: !!j.esBot };
     this.fase = 'adjudicado';
-    // La carta completa se revela SOLO al ganador.
     if (j.socketId) this.io.to(j.socketId).emit('jugador:cartaGanada', { carta, dinero: j.dinero });
     this.emitirEstado();
     this.toHost('subasta:adjudicada', this.estadoPublico());
-    this.siguienteAutomatico();
+    this.verificarFin();
   }
 
   asignarPorQuiebra(carta) {
     for (const id of this.quiebraCola) {
       const j = this.jugadores.find((x) => x.id === id);
-      if (!j) continue;
-      if (!puedeAceptar(j, carta)) continue;
+      if (!j || !puedeAceptar(j, carta)) continue;
       j.cartas.push(carta);
-      this.desiertasConsecutivas = 0;
+      this.desiertasSeguidas = 0;
       this.log.push({ carta: carta.nombre, resultado: 'asignada por quiebra', a: j.nombre, monto: 0 });
-      this.ultimoGanador = { jugadorId: j.id, nombre: j.nombre, puesto: carta.nombre, rol: carta.rol, media: null, monto: 0, desierta: false, quiebra: true };
+      this.ultimoGanador = { jugadorId: j.id, nombre: j.nombre, puesto: carta.nombre, rol: carta.rol, media: null, monto: 0, quiebra: true, esBot: !!j.esBot };
       this.fase = 'adjudicado';
       if (j.socketId) this.io.to(j.socketId).emit('jugador:cartaGanada', { carta, dinero: j.dinero, porQuiebra: true });
       this.emitirEstado();
       this.toHost('subasta:adjudicada', this.estadoPublico());
-      this.siguienteAutomatico();
+      this.verificarFin();
       return true;
     }
     return false;
   }
 
-  siguienteAutomatico() {
-    this.limpiarTemporizador();
-    this.ultimoGanador = this.ultimoGanador; // se conserva para el proximo render
-    this.temporizador = setTimeout(() => { this.temporizador = null; this.sacarCarta(); }, ECONOMIA.pausaAdjudicada);
+  tirarBasura(carta) {
+    this.desiertasSeguidas += 1;
+    this.log.push({ carta: carta.nombre, resultado: 'a la basura' });
+    this.ultimoGanador = { jugadorId: null, nombre: null, puesto: carta.nombre, rol: carta.rol, media: null, monto: 0, basura: true };
+    this.fase = 'adjudicado';
+    this.emitirEstado();
+    this.toHost('subasta:adjudicada', this.estadoPublico());
+    this.verificarFin();
+  }
+
+  siguiente() {
+    if (this.fase === 'fin') return { error: 'La partida termino.' };
+    this.sacarCarta();
+    return { ok: true };
+  }
+
+  verificarFin() {
+    if (this.jugadoresActivos().length === 0) return this.terminar();
+    if (this.desiertasSeguidas >= ECONOMIA.maxEnviosSeguidos) return this.terminar();
+    return false;
+  }
+
+  // --- bots ------------------------------------------------------------
+  programarBots() {
+    if (this.fase !== 'puja') return;
+    for (const bot of this.jugadores.filter((j) => j.esBot)) {
+      if (!this.cartaActual || !puedeAceptar(bot, this.cartaActual)) continue;
+      if (this.pujaActual && this.pujaActual.jugadorId === bot.id) continue;
+      if (bot.botTimer) clearTimeout(bot.botTimer);
+      const ms = ECONOMIA.botDelayMin + Math.random() * (ECONOMIA.botDelayMax - ECONOMIA.botDelayMin);
+      bot.botTimer = setTimeout(() => { bot.botTimer = null; this.intentoBidBot(bot); }, ms);
+    }
+  }
+
+  valoracionBot(bot, carta) {
+    let v = (carta.media / 100) * 11;                 // base por calidad
+    const faltan = ECONOMIA.tamanoPlantilla - bot.cartas.length;
+    if (carta.rol === 'ceo' && contarRol(bot.cartas, 'ceo') === 0) v += 3;
+    if (carta.rol === 'admin' && contarRol(bot.cartas, 'admin') === 0) v += 2;
+    if (faltan <= 2) v += 1;                          // urgencia por cerrar plantilla
+    v += Math.random() * 2 - 1;
+    // reserva de presupuesto para completar los lugares restantes
+    const porCarta = Math.floor(bot.dinero / Math.max(1, faltan));
+    let tope = Math.max(1, Math.min(Math.round(v), porCarta + (carta.media >= 85 ? 2 : 0)));
+    return Math.min(tope, bot.dinero);
+  }
+
+  intentoBidBot(bot) {
+    if (this.fase !== 'puja' || !this.cartaActual) return;
+    if (!puedeAceptar(bot, this.cartaActual)) return;
+    if (this.pujaActual && this.pujaActual.jugadorId === bot.id) return;
+    const actual = this.pujaActual ? this.pujaActual.monto : 0;
+    const siguiente = actual + 1;
+    if (siguiente > bot.dinero) return;
+    const valor = this.valoracionBot(bot, this.cartaActual);
+    if (siguiente > valor) return;
+    this.registrarPuja(bot, siguiente);
   }
 
   // --- cierre ----------------------------------------------------------
-  resolverSinCartas() {
-    // Se acabo el mazo: intenta completar plantillas con lo que quede en la cola de quiebra.
-    this.terminar();
-  }
-
   terminar() {
-    this.limpiarTemporizador();
+    this.limpiarTemporizadores();
     this.fase = 'fin';
     const resultados = this.jugadores.map((j) => {
       const p = calcularPuntaje(j);
       return {
-        jugadorId: j.id,
-        nombre: j.nombre,
-        cartas: j.cartas,
-        dinero: j.dinero,
-        media: p.base,
-        bonus: p.bonus,
-        penal: p.penal,
-        total: p.total
+        jugadorId: j.id, nombre: j.nombre, esBot: !!j.esBot,
+        cartas: j.cartas, dinero: j.dinero,
+        media: p.base, bonus: p.bonus, penal: p.penal, total: p.total
       };
     }).sort((a, b) => b.total - a.total || b.media - a.media);
     resultados.forEach((r, i) => { r.puesto = i + 1; });

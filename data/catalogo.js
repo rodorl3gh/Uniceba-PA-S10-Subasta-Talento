@@ -10,13 +10,26 @@
 const ECONOMIA = {
   presupuestoInicial: 20,      // dinero inicial por jugador
   tamanoPlantilla: 5,          // personas por equipo
-  pujasRapidas: [1, 2, 3, 4, 5], // botones de puja (enteros)
-  segundosPuja: 20,            // duracion de cada ronda de puja
-  segundosDesempate: 15,       // duracion de la segunda vuelta
-  pausaAdjudicada: 3500,       // ms que se muestra la carta adjudicada antes de la siguiente
-  minJugadores: 2,
-  maxJugadores: 15
+  incrementosRapidos: [1, 2, 5], // botones de puja rapida (suben sobre la puja actual)
+  segundosPuja: 20,            // el reloj se reinicia a 20s con cada puja
+  maxBots: 5,                  // bots maximos que puede agregar el anfitrion
+  minJugadores: 2,             // minimo de jugadores (reales o bots) para iniciar
+  maxJugadores: 15,
+  maxEnviosSeguidos: 14,       // rondas sin adjudicar antes de cerrar la partida
+  botDelayMin: 1600,           // ms minimos que tarda un bot en responder
+  botDelayMax: 5200            // ms maximos que tarda un bot en responder
 };
+
+// Colores de las barras de atributos (verde / amarillo / rojo)
+const UMBRAL_ATRIBUTO = { verde: 75, amarillo: 55 };
+
+function tierAtributo(valor) {
+  if (valor >= UMBRAL_ATRIBUTO.verde) return 'verde';
+  if (valor >= UMBRAL_ATRIBUTO.amarillo) return 'amarillo';
+  return 'rojo';
+}
+
+const NOMBRES_BOT = ['Bot Ana', 'Bot Beto', 'Bot Carla', 'Bot Diego', 'Bot Elena'];
 
 // Roles y cuantos se permiten por plantilla (garantiza composicion valida)
 const REGLAS_ROL = {
@@ -212,5 +225,6 @@ function contarPorRol(cartas) {
 
 module.exports = {
   ECONOMIA, REGLAS_ROL, PUNTAJE, AREAS, PERFIL_ROL, TIERS,
+  UMBRAL_ATRIBUTO, NOMBRES_BOT, tierAtributo,
   construirCatalogo, contarPorRol
 };

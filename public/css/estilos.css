@@ -106,16 +106,43 @@ body::after {
 .carta-subasta {
   background: linear-gradient(135deg, #f7f9fc, #eaf0f8);
   border-left: 6px solid var(--uniceba-blue); border-radius: 14px;
-  padding: 22px 26px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+  padding: 20px 24px; display: block;
 }
-.carta-subasta .icono { font-size: 54px; }
-.carta-subasta .puesto { font-size: 30px; font-weight: 900; color: var(--uniceba-blue); }
+.carta-subasta-cab { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.carta-subasta .icono { font-size: 50px; }
+.carta-subasta .puesto { font-size: 28px; font-weight: 900; color: var(--uniceba-blue); }
 .carta-subasta .meta { color: var(--text-light); font-size: 14px; margin-top: 4px; }
 .media-oculta {
   margin-left: auto; text-align: center; background: var(--uniceba-blue); color: #fff;
   border-radius: 12px; padding: 10px 22px; font-weight: 900; font-size: 30px;
 }
 .media-oculta small { display: block; font-size: 11px; font-weight: 600; opacity: 0.85; letter-spacing: 1px; }
+
+/* Barras de atributos (verde / amarillo / rojo) */
+.atributos-caja { margin-top: 16px; display: grid; gap: 8px; }
+.attr { display: grid; grid-template-columns: 110px 1fr; align-items: center; gap: 10px; }
+.attr-nom { font-size: 12px; font-weight: 700; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; }
+.attr-barra { height: 14px; background: #e3e8f0; border-radius: 8px; overflow: hidden; }
+.attr-fill { height: 100%; border-radius: 8px; transition: width 0.4s ease; }
+.attr-fill.verde { background: linear-gradient(90deg, #1f9d55, #4fce7d); }
+.attr-fill.amarillo { background: linear-gradient(90deg, #d9a300, #f0c94a); }
+.attr-fill.rojo { background: linear-gradient(90deg, #c0392b, #e57368); }
+
+/* Puja actual */
+.puja-actual-caja {
+  margin-top: 14px; background: #fffdf5; border: 2px solid var(--uniceba-gold);
+  border-radius: 12px; padding: 12px 18px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.puja-etiqueta { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light); font-weight: 700; }
+.puja-monto { font-size: 28px; font-weight: 900; color: #6b5a1e; }
+.puja-lider { font-size: 15px; font-weight: 700; color: var(--text); }
+
+.fila-botones { display: flex; gap: 10px; margin-top: 14px; }
+.fila-botones .btn { flex: 1; padding: 12px 10px; font-size: 14px; }
+.bot-tag { background: var(--uniceba-gold); color: #3a2f0b; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 8px; }
+
+.lista-instr { padding-left: 20px; display: grid; gap: 8px; }
+.lista-instr li { font-size: 14px; line-height: 1.45; color: var(--text); }
 
 .grid-jugadores { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 18px; }
 .jugador-card {

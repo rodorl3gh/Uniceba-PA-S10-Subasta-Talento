@@ -2,19 +2,14 @@
 const socket = io();
 const $ = (id) => document.getElementById(id);
 
-const ROLES = {
-  ceo: 'CEO / Dirección',
-  admin: 'Administrador / Jefatura',
-  colaborador: 'Colaborador / Obrero'
-};
-
 let miId = null;
 let miNombre = null;
 let estadoPub = null;
 let miEstado = null;
-let yaEnvie = false;
-let ultimaClave = null;
 let codigoActual = null;
+
+$('instruccionesJugador').innerHTML = instruccionesHTML();
+$('btnEntendido').addEventListener('click', () => $('overlayInstr').classList.add('oculto'));
 
 const params = new URLSearchParams(location.search);
 const codeUrl = (params.get('code') || '').toUpperCase();
@@ -32,6 +27,7 @@ function entrar() {
   if (!nombre) { $('errorUnion').textContent = 'Escribe tu nombre.'; return; }
   $('errorUnion').textContent = '';
   const guardado = localStorage.getItem(claveStorage(code));
+  localStorage.setItem('subasta_nombre', nombre);
   codigoActual = code;
   miNombre = nombre;
   socket.emit('jugador:unirse', { code, nombre, jugadorId: guardado || undefined }, (r) => {
@@ -45,13 +41,11 @@ function entrar() {
   });
 }
 
-// Auto-reconexion si ya estaba en la sala
 window.addEventListener('load', () => {
   if (!codeUrl) return;
   const guardado = localStorage.getItem(claveStorage(codeUrl));
-  if (!guardado) return;
-  const nombre = localStorage.getItem('subasta_nombre') || '';
-  if (!nombre) return;
+  const nombre = localStorage.getItem('subasta_nombre');
+  if (!guardado || !nombre) return;
   $('inputNombre').value = nombre;
   entrarGuardado(codeUrl, guardado, nombre);
 });
@@ -69,23 +63,15 @@ function entrarGuardado(code, id, nombre) {
 }
 
 socket.on('sala:estado', (e) => { estadoPub = e; render(); });
-
-socket.on('jugador:estado', (e) => {
-  miEstado = e;
-  render();
-});
+socket.on('jugador:estado', (e) => { miEstado = e; render(); });
 
 socket.on('jugador:cartaGanada', ({ carta, dinero, porQuiebra }) => {
-  miDineroSync(dinero);
+  if (miEstado) miEstado.dinero = dinero;
+  $('miDinero').textContent = '$' + dinero;
   mostrarCartaGanada(carta, porQuiebra);
 });
 
 socket.on('juego:fin', ({ resultados }) => mostrarFin(resultados));
-
-function miDineroSync(d) {
-  if (miEstado) miEstado.dinero = d;
-  $('miDinero').textContent = '$' + d;
-}
 
 socket.on('connect', () => {
   if (codigoActual && miId) {
@@ -95,19 +81,16 @@ socket.on('connect', () => {
 
 function render() {
   if (!miEstado || !estadoPub) return;
-  const clave = (estadoPub.cartaActual ? estadoPub.cartaActual.id : '') + ':' + estadoPub.fase;
-  if (clave !== ultimaClave) { ultimaClave = clave; yaEnvie = false; }
   $('miDinero').textContent = '$' + miEstado.dinero;
   $('miDinero').className = 'monto' + (miEstado.dinero <= 0 ? ' quiebra' : '');
   $('miRonda').textContent = estadoPub.fase === 'lobby' ? '—' : estadoPub.ronda;
-
   renderPlantilla();
 
   const fase = estadoPub.fase;
-  const enSubasta = fase === 'puja' || fase === 'desempate';
-  if (!enSubasta) {
+  if (fase !== 'puja') {
     $('tituloCarta').textContent = fase === 'lobby' ? 'Esperando a que el anfitrión inicie…' : 'Preparando la siguiente carta…';
     $('contenidoCarta').innerHTML = '';
+    $('pujaActual').classList.add('oculto');
     $('pujaBotones').classList.add('oculto');
     if (fase === 'lobby') {
       $('estadoPuja').classList.remove('oculto');
@@ -120,33 +103,46 @@ function render() {
   }
 
   const c = estadoPub.cartaActual;
-  $('tituloCarta').textContent = fase === 'desempate' ? '¡Desempate! Segunda vuelta sellada' : `Ronda ${estadoPub.ronda}: ${ROLES[c.rol]}`;
+  $('tituloCarta').textContent = `Ronda ${estadoPub.ronda} · ${ROLES_CORTO[c.rol]}`;
   $('contenidoCarta').innerHTML = `
-    <div class="carta-subasta" style="padding:16px 18px">
-      <div class="icono" style="font-size:40px">${c.icon}</div>
+    <div class="carta-subasta-cab" style="padding:0">
+      <div class="icono" style="font-size:34px">${c.icon}</div>
       <div>
-        <div class="puesto" style="font-size:22px">${c.nombre}</div>
-        <div class="meta">${c.area} · la media está oculta</div>
+        <div class="puesto" style="font-size:20px">${c.nombre}</div>
+        <div class="meta">${c.area} · media oculta</div>
       </div>
-    </div>`;
+    </div>
+    <div class="atributos-caja">${barrasAtributos(c.atributos)}</div>`;
 
-  const puede = miEstado.puedePujar && !yaEnvie;
-  const botones = estadoPub.pujasRapidas.map((n) =>
-    `<button data-monto="${n}" ${(!puede || n > miEstado.dinero) ? 'disabled' : ''}>$${n}</button>`
-  ).join('');
-  $('pujaBotones').innerHTML = botones + `<button class="pasar" data-pasar="1" ${yaEnvie ? 'disabled' : ''}>Pasar</button>`;
-  $('pujaBotones').classList.remove('oculto');
+  const pa = estadoPub.pujaActual;
+  $('pujaActual').classList.remove('oculto');
+  if (miEstado.vaGanando) {
+    $('pujaActual').innerHTML = `<span class="puja-etiqueta">Vas ganando con</span> <span class="puja-monto">$${pa.monto}</span>`;
+  } else if (pa) {
+    $('pujaActual').innerHTML = `<span class="puja-etiqueta">Puja actual</span> <span class="puja-monto">$${pa.monto}</span> <span class="puja-lider">${pa.nombre || ''}</span>`;
+  } else {
+    $('pujaActual').innerHTML = '<span class="puja-etiqueta">Aún no hay pujas</span>';
+  }
+
+  const base = pa ? pa.monto : 0;
+  const incs = estadoPub.incrementosRapidos;
+  const puede = miEstado.puedePujar;
+  $('pujaBotones').innerHTML = incs.map((inc) => {
+    const val = base + inc;
+    const dis = !puede || val > miEstado.dinero;
+    return `<button data-monto="${val}" ${dis ? 'disabled' : ''}>$${val}</button>`;
+  }).join('');
+  $('pujaBotones').classList.toggle('oculto', false);
   $('pujaBotones').querySelectorAll('button').forEach((b) => {
-    b.onclick = () => {
-      if (b.dataset.pasar) return enviarPase();
-      enviarPuja(Number(b.dataset.monto));
-    };
+    b.onclick = () => enviarPuja(Number(b.dataset.monto));
   });
 
-  if (yaEnvie) {
-    $('estadoPuja').classList.remove('oculto');
-    $('estadoPuja').className = 'estado-puja ok';
-    $('estadoPuja').textContent = '✓ Puja enviada. Esperando a los demás…';
+  if (miEstado.vaGanando) {
+    $('estadoPuja').classList.remove('oculto'); $('estadoPuja').className = 'estado-puja ok';
+    $('estadoPuja').textContent = '✓ Vas ganando. ¡Atento, te pueden superar!';
+  } else if (!puede) {
+    $('estadoPuja').classList.remove('oculto'); $('estadoPuja').className = 'estado-puja espera';
+    $('estadoPuja').textContent = miEstado.dinero <= 0 ? 'Sin dinero: solo puedes esperar asignaciones por quiebra.' : 'Este rol ya no cabe en tu plantilla.';
   } else {
     $('estadoPuja').classList.add('oculto');
   }
@@ -155,15 +151,7 @@ function render() {
 function enviarPuja(monto) {
   socket.emit('jugador:pujar', { monto }, (r) => {
     if (r && r.error) { aviso(r.error); return; }
-    yaEnvie = true;
-    render();
-  });
-}
-function enviarPase() {
-  socket.emit('jugador:pasar', {}, (r) => {
-    if (r && r.error) { aviso(r.error); return; }
-    yaEnvie = true;
-    render();
+    if (miEstado) { /* el servidor confirmara el nuevo estado */ }
   });
 }
 
@@ -174,7 +162,7 @@ function renderPlantilla() {
     <div class="slot lleno">
       <div class="s-media">${c.media}</div>
       <div class="s-nombre">${c.nombre}</div>
-      <div class="s-rol">${c.rol}</div>
+      <div class="s-rol">${ROLES_CORTO[c.rol]}</div>
     </div>`).join('');
   const vacios = Math.max(0, 5 - cartas.length);
   let extra = '';
@@ -182,7 +170,6 @@ function renderPlantilla() {
   $('miPlantilla').innerHTML = slots + extra;
 }
 
-// ---- Carta ganada ----
 function mostrarCartaGanada(carta, porQuiebra) {
   const attrs = Object.entries(carta.atributos).map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('');
   $('modal').innerHTML = `
@@ -213,7 +200,7 @@ function mostrarFin(resultados) {
   const medalla = yo.puesto === 1 ? '🥇' : yo.puesto === 2 ? '🥈' : yo.puesto === 3 ? '🥉' : '🎖️';
   const lista = resultados.slice(0, 5).map((r) => `
     <tr style="${r.jugadorId === miId ? 'font-weight:800;background:#eef4fb' : ''}">
-      <td>${r.puesto}</td><td>${r.nombre}</td><td class="punt">${r.total}</td>
+      <td>${r.puesto}</td><td>${r.esBot ? '🤖 ' : ''}${r.nombre}</td><td class="punt">${r.total}</td>
     </tr>`).join('');
   $('modal').innerHTML = `
     <div style="font-size:52px">${medalla}</div>
@@ -222,12 +209,7 @@ function mostrarFin(resultados) {
     <p style="font-size:13px;margin-top:6px">Media del equipo ${yo.media} · Bonus +${yo.bonus} · Penal -${yo.penal}</p>
     <table class="tabla-resultados"><thead><tr><th>#</th><th>Jugador</th><th>Puntaje</th></tr></thead><tbody>${lista}</tbody></table>`;
   $('overlay').classList.remove('oculto');
+  $('overlayInstr').classList.add('oculto');
 }
 
 function aviso(txt) { alert(txt); }
-
-// Guarda el nombre para reconexion
-$('btnEntrar').addEventListener('click', () => {
-  const n = $('inputNombre').value.trim();
-  if (n) localStorage.setItem('subasta_nombre', n);
-});

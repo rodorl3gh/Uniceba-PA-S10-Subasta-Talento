@@ -50,6 +50,7 @@
       <div class="panel-movil" id="panelCarta">
         <div class="panel-titulo" id="tituloCarta">Esperando a que inicie la subasta…</div>
         <div id="contenidoCarta"></div>
+        <div id="pujaActual" class="puja-actual-caja oculto"></div>
         <div class="puja-botones oculto" id="pujaBotones"></div>
         <div class="estado-puja oculto" id="estadoPuja"></div>
       </div>
@@ -61,10 +62,24 @@
     </section>
   </main>
 
+  <!-- INSTRUCCIONES (al escanear el QR) -->
+  <div id="overlayInstr" class="overlay">
+    <div class="card-modal" style="text-align:left">
+      <div style="text-align:center;font-size:46px">🎯</div>
+      <h2 style="text-align:center">¿Cómo se juega?</h2>
+      <p style="text-align:center;margin-bottom:14px">Subasta de Talento · Sesión 10</p>
+      <div id="instruccionesJugador"></div>
+      <button id="btnEntendido" class="btn btn-primary btn-block" style="margin-top:18px">¡Entendido, a jugar!</button>
+    </div>
+  </div>
+
+  <!-- CARTA GANADA -->
   <div id="overlay" class="overlay oculto"><div class="card-modal" id="modal"></div></div>
+
   <footer class="footer">UNICEBA · Licenciatura en Negocios Internacionales · Ing. Rodolfo Ramírez</footer>
 
   <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/comun.js"></script>
   <script src="/js/jugador.js"></script>
 </body>
 </html>

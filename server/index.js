@@ -12,8 +12,9 @@ const { ECONOMIA } = require('../data/catalogo');
 
 // Overrides opcionales (utiles para pruebas automatizadas).
 if (process.env.SEGUNDOS_PUJA) ECONOMIA.segundosPuja = Number(process.env.SEGUNDOS_PUJA);
-if (process.env.SEGUNDOS_DESEMPATE) ECONOMIA.segundosDesempate = Number(process.env.SEGUNDOS_DESEMPATE);
-if (process.env.PAUSA_ADJUDICADA) ECONOMIA.pausaAdjudicada = Number(process.env.PAUSA_ADJUDICADA);
+if (process.env.MAX_ENVIOS) ECONOMIA.maxEnviosSeguidos = Number(process.env.MAX_ENVIOS);
+if (process.env.BOT_DELAY_MIN) ECONOMIA.botDelayMin = Number(process.env.BOT_DELAY_MIN);
+if (process.env.BOT_DELAY_MAX) ECONOMIA.botDelayMax = Number(process.env.BOT_DELAY_MAX);
 
 const app = express();
 const server = http.createServer(app);
@@ -70,9 +71,34 @@ io.on('connection', (socket) => {
     cb && cb(r);
   });
 
-  socket.on('host:siguiente', () => {
+  socket.on('host:siguiente', (_, cb) => {
     const sala = salas.get(socket.data && socket.data.code);
-    if (sala) { sala.limpiarTemporizador(); sala.sacarCarta(); }
+    if (!sala) return cb && cb({ error: 'Sala no encontrada.' });
+    const r = sala.siguiente();
+    cb && cb(r);
+  });
+
+  socket.on('host:terminarSubasta', (_, cb) => {
+    const sala = salas.get(socket.data && socket.data.code);
+    if (!sala) return cb && cb({ error: 'Sala no encontrada.' });
+    sala.resolver();
+    cb && cb({ ok: true });
+  });
+
+  socket.on('host:agregarBot', (_, cb) => {
+    const sala = salas.get(socket.data && socket.data.code);
+    if (!sala) return cb && cb({ error: 'Sala no encontrada.' });
+    const r = sala.agregarBot();
+    sala.emitirEstado();
+    cb && cb(r);
+  });
+
+  socket.on('host:quitarBot', (_, cb) => {
+    const sala = salas.get(socket.data && socket.data.code);
+    if (!sala) return cb && cb({ error: 'Sala no encontrada.' });
+    const r = sala.quitarBot();
+    sala.emitirEstado();
+    cb && cb(r);
   });
 
   // ---------------- JUGADOR ----------------
@@ -94,15 +120,6 @@ io.on('connection', (socket) => {
     const j = sala.jugadores.find((x) => x.id === socket.data.jugadorId);
     if (!j) return cb && cb({ error: 'Jugador no encontrado.' });
     const r = sala.registrarPuja(j, monto);
-    cb && cb(r);
-  });
-
-  socket.on('jugador:pasar', (_, cb) => {
-    const sala = salas.get(socket.data && socket.data.code);
-    if (!sala) return cb && cb({ error: 'Sala no encontrada.' });
-    const j = sala.jugadores.find((x) => x.id === socket.data.jugadorId);
-    if (!j) return cb && cb({ error: 'Jugador no encontrado.' });
-    const r = sala.registrarPase(j);
     cb && cb(r);
   });
 

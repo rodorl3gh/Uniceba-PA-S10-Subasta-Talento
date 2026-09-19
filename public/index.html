@@ -31,11 +31,21 @@
         <div class="codigo" id="codigoSala">-----</div>
         <div class="url-join" id="urlJoin"></div>
       </div>
-      <div class="panel">
-        <div class="panel-titulo">Jugadores en la sala <span id="contadorJugadores">(0/15)</span></div>
-        <div id="listaJugadores" class="lista-jugadores"></div>
-        <button id="btnIniciar" class="btn btn-primary btn-block" style="margin-top:20px" disabled>Iniciar subasta</button>
-        <p style="font-size:12px;color:#999;text-align:center;margin-top:8px">Se necesitan al menos 2 jugadores</p>
+      <div>
+        <div class="panel">
+          <div class="panel-titulo">Jugadores en la sala <span id="contadorJugadores">(0/15)</span></div>
+          <div id="listaJugadores" class="lista-jugadores"></div>
+          <div class="fila-botones">
+            <button id="btnAgregarBot" class="btn btn-ghost">🤖 Agregar bot</button>
+            <button id="btnQuitarBot" class="btn btn-ghost">Quitar bot</button>
+          </div>
+          <button id="btnIniciar" class="btn btn-primary btn-block" style="margin-top:12px" disabled>Iniciar juego</button>
+          <p style="font-size:12px;color:#999;text-align:center;margin-top:8px">Mínimo 2 jugadores (reales o bots) · Máx. 5 bots</p>
+        </div>
+        <div class="panel" style="margin-top:16px">
+          <div class="panel-titulo">📋 Instrucciones del juego</div>
+          <div id="instruccionesAdmin"></div>
+        </div>
       </div>
     </section>
 
@@ -48,8 +58,16 @@
             <div class="timer-num" id="timerNum">20</div>
             <div class="timer-barra"><div class="timer-fill" id="timerFill"></div></div>
           </div>
-          <button id="btnSiguiente" class="btn btn-ghost">Saltar carta</button>
+          <button id="btnTerminar" class="btn btn-gold">Terminar subasta</button>
+          <button id="btnSiguiente" class="btn btn-primary oculto">Siguiente colaborador</button>
         </div>
+
+        <div id="pujaActualCaja" class="puja-actual-caja">
+          <span class="puja-etiqueta">Puja actual</span>
+          <span class="puja-monto" id="pujaActualMonto">Sin pujas</span>
+          <span class="puja-lider" id="pujaActualLider"></span>
+        </div>
+
         <div id="cartaSubasta" class="carta-subasta"></div>
         <div id="bannerAdjudicada"></div>
         <div class="grid-jugadores" id="gridJugadores"></div>
@@ -61,6 +79,7 @@
   <footer class="footer">UNICEBA · Licenciatura en Negocios Internacionales · Proceso Administrativo · Ing. Rodolfo Ramírez</footer>
 
   <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/comun.js"></script>
   <script src="/js/host.js"></script>
 </body>
 </html>

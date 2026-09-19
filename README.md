@@ -13,16 +13,25 @@ mejor equipo construyó.
 
 ## Reglas del juego
 
-- **Presupuesto inicial:** $20 por jugador. Pujas enteras de **1, 2, 3, 4 o 5** (o *Pasar*).
+- **Presupuesto inicial:** $20 por jugador.
+- **Subasta en tiempo real:** al abrir el anfitrión una ronda arranca un reloj de
+  **20 segundos** que **se reinicia cada vez que alguien puja**. Gana la puja más alta
+  cuando el reloj llega a cero.
+- **Pujas ascendentes:** cada puja debe superar la anterior; puedes pujar **varias veces**
+  y el único límite es tu dinero. El anfitrión puede **Terminar subasta** antes de tiempo.
+- **Atributos a la vista, media oculta:** durante la subasta se ven **barras de color**
+  (verde = alto, amarillo = medio, rojo = bajo) por atributo; la **media exacta** solo se
+  revela al ganador mediante una carta estilo FIFA.
 - **Plantilla:** 5 personas con esta composición obligatoria:
   - mínimo **1 CEO** / Dirección General
   - mínimo **1 Administrador** / Jefatura
   - mínimo **2 Colaboradores** / Obreros
-- **Puja sellada simultánea:** nadie ve los montos; en el panel se ve **quién ya pujó**.
-- **Gana** la puja más alta. Si hay **empate**, hay una **segunda vuelta** solo entre los
-  empatados; si vuelve a empatar, se rompe **al azar** para no frenar la partida.
-- Si **nadie puja**, el candidato se asigna **gratis** a un jugador en **quiebra**
-  (sin dinero), en orden de quiebra.
+- Si **nadie puja**, el candidato **se descarta** (a la basura). Solo se regala a un
+  jugador **sin dinero** (en quiebra) que aún necesite completar su plantilla, en orden
+  de quiebra.
+- **Bots:** el anfitrión puede agregar hasta **5 bots** que compiten solos y siguen las
+  mismas reglas (pujan, se quedan sin dinero y reciben asignaciones por quiebra).
+- **Mínimo para iniciar:** 2 jugadores (reales o bots). **Máximo:** 15 en total.
 - Al final: **puntaje = media del equipo + bonus** (composición válida, CEO estrella,
   equipo sin conflictos) **− penalización** por cada carta con rasgo negativo.
 - **Ganadores:** top 3 con podio en la pantalla del anfitrión.
@@ -43,11 +52,13 @@ npm start
 Abre `http://localhost:3000` en la **computadora del docente** (pantalla/proyector):
 
 1. Aparece un **código de sala** y un **QR**. Proyecta esa pantalla.
-2. Los alumnos escanean el QR, escriben su **nombre** y entran.
-3. Cuando estén conectados (mínimo 2, máximo 15), pulsa **Iniciar subasta**.
-4. En cada ronda los alumnos pujan desde su celular. El anfitrión muestra quién pujó
-   y a quién se le adjudicó cada puesto (sin revelar la media).
-5. Al completar todas las plantillas aparece el **podio y la tabla final**.
+2. (Opcional) Agrega hasta **5 bots** para completar la partida.
+3. Los alumnos escanean el QR, ven las **instrucciones**, escriben su **nombre** y entran.
+4. Con **2 o más** jugadores/bots, pulsa **Iniciar juego**.
+5. En cada ronda se abre el colaborador y arranca el reloj de 20s; los alumnos pujan desde
+   su celular. El reloj se **reinicia con cada puja**. El anfitrión puede **Terminar subasta**
+   para cerrarla antes, y luego **Siguiente colaborador**.
+6. Al completar todas las plantillas aparece el **podio y la tabla final**.
 
 > Para usarlo en red local: los celulares deben estar en el **mismo WiFi** que la
 > computadora y esta debe permitir conexiones entrantes en el puerto (firewall de Windows).
@@ -57,11 +68,14 @@ Abre `http://localhost:3000` en la **computadora del docente** (pantalla/proyect
 ## Pruebas
 
 ```bash
-# Simulación del motor: 420 partidas con 2 a 15 jugadores y validación de reglas
+# Simulación del motor: partidas de 2 a 10 jugadores (con y sin bots) y validación de reglas
 npm test
 
-# Prueba end-to-end con navegador (Playwright). Por defecto 3 jugadores.
+# Prueba end-to-end con navegador (Playwright). Por defecto 3 jugadores + 2 bots.
 node tests/e2e.js
+
+# Personalizar jugadores y bots simulados
+set JUGADORES=8 && set BOTS=5 && node tests/e2e.js
 
 # Cambiar la cantidad de jugadores simulados
 set JUGADORES=15 && node tests/e2e.js
