@@ -45,6 +45,10 @@ socket.on('juego:fin', ({ resultados, estado: e }) => { if (e) estado = e; rende
 $('btnIniciar').addEventListener('click', () => { audioInit(); socket.emit('host:iniciar', {}, (r) => { if (r && r.error) alert(r.error); }); });
 $('btnSiguiente').addEventListener('click', () => socket.emit('host:siguiente', {}, (r) => { if (r && r.error) alert(r.error); }));
 $('btnTerminar').addEventListener('click', () => socket.emit('host:terminarSubasta', {}, (r) => { if (r && r.error) alert(r.error); }));
+$('btnFinalizar').addEventListener('click', () => {
+  if (!confirm('¿Finalizar toda la subasta y mostrar resultados finales? Esta acción no se puede deshacer.')) return;
+  socket.emit('host:finalizarJuego', {}, (r) => { if (r && r.error) alert(r.error); });
+});
 $('btnAgregarBot').addEventListener('click', () => socket.emit('host:agregarBot', {}, (r) => { if (r && r.error) alert(r.error); }));
 $('btnQuitarBot').addEventListener('click', () => socket.emit('host:quitarBot', {}, (r) => { if (r && r.error) alert(r.error); }));
 
@@ -71,6 +75,7 @@ function render() {
   ).join('') || '<p style="color:#999;font-size:14px">Aún no se une nadie. Comparte el QR.</p>';
 
   $('btnTerminar').classList.toggle('oculto', !enPuja);
+  $('btnFinalizar').classList.toggle('oculto', enLobby || estado.fase === 'fin');
   $('btnSiguiente').classList.toggle('oculto', !enAdjudicado);
 
   if (!enLobby) renderSubasta();

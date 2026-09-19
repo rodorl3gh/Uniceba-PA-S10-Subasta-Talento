@@ -124,6 +124,14 @@ io.on('connection', (socket) => {
     cb && cb({ ok: true });
   });
 
+  socket.on('host:finalizarJuego', (_, cb) => {
+    const sala = salas.get(socket.data && socket.data.code);
+    if (!sala) return cb && cb({ error: 'Sala no encontrada.' });
+    if (sala.fase === 'fin') return cb && cb({ error: 'La partida ya termino.' });
+    sala.terminar();
+    cb && cb({ ok: true });
+  });
+
   socket.on('host:agregarBot', (_, cb) => {
     const sala = salas.get(socket.data && socket.data.code);
     if (!sala) return cb && cb({ error: 'Sala no encontrada.' });

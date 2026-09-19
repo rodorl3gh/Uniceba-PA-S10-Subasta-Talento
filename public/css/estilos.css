@@ -75,6 +75,8 @@ body::after {
 .btn-gold:hover { background: #d8bb63; transform: translateY(-1px); }
 .btn-ghost { background: transparent; color: var(--uniceba-blue); border: 2px solid var(--uniceba-blue); }
 .btn-ghost:hover { background: rgba(0, 51, 102, 0.08); }
+.btn-danger { background: var(--incorrect); color: #fff; }
+.btn-danger:hover { background: #b91c1c; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(185, 28, 28, 0.25); }
 .btn-block { width: 100%; }
 
 /* ---------- Lobby ---------- */
